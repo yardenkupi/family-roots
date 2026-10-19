@@ -62,6 +62,7 @@
   .tcard { position: absolute; display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--tcard); border: 1.5px solid var(--m-line); border-radius: 6px; direction: rtl; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
   .tcard.f { border-color: var(--f-line); }
   .tcard:hover, .tcard:focus-visible { box-shadow: 0 2px 10px rgba(0,0,0,.18); outline: none; }
+  .tcard.far { opacity: .5; border-style: dashed; }
   .tcard.focus { border-width: 3px; padding: 4px 6px; box-shadow: 0 3px 12px rgba(0,0,0,.2); }
   .tcard.prob { border-style: dashed; }
   .tcard .tav { width: 40px; height: 40px; border-radius: 50%; flex: none; overflow: hidden; background: var(--tav-bg); display: grid; place-items: center; }
@@ -303,7 +304,8 @@
       <span><i class="sw dash" style="border-color:var(--probable)"></i>קשר סביר – השערה, ללא מסמך ישיר</span>
       <span><span class="tag confirmed">מאומת</span> מצבה או שתי ראיות</span>
       <span>🕯 נספה בשואה</span>
-      <span style="color:var(--ink-2)">מוצג כל מי שנמצא עד מספר הקשרים שנבחר מהאדם שבמרכז (קשר = הורה, ילד, בן/בת זוג או אח/ות) · לחיצה על אדם מסמנת אותו ופותחת את פרטיו (האילן לא משתנה); "הצג את האילן סביב…" בכרטיס בונה את האילן סביבו, ו-⌂ מחזיר אליך · גרירה להזזה · גלגלת להגדלה</span>
+      <span><i class="lc" style="border-color:var(--m-line);border-style:dashed;opacity:.5"></i>מחוץ למרחק – מוצג רק כדי לחבר קו</span>
+      <span style="color:var(--ink-2)">מרחק = מספר הקווים בין שני אנשים: הורה, ילד, בן/בת זוג או אח/ות הם קשר אחד; סבא הוא 2 קשרים (אבא, ואז אביו), וגם דוד הוא 2 קשרים (אבא, ואז אחיו) · לחיצה על אדם מסמנת אותו ופותחת את פרטיו (האילן לא משתנה); "הצג את האילן סביב…" בכרטיס בונה את האילן סביבו, ו-⌂ מחזיר אליך · גרירה להזזה · גלגלת להגדלה</span>
     </div>
   </section>
   <section id="v-journeys" class="view"></section>
@@ -1948,14 +1950,9 @@ window.NEXT_STEPS = [
       childrenOf(x).forEach(c => { const o = otherParent(c, x); if (!groups.has(o)) groups.set(o, []); groups.get(o).push(c); });
       [...groups.values()].forEach((cs, gi) => { const lst = birthSort(cs); lst.forEach((c, i) => visit(c, x, gx + 1, [...kx, gi * 0.05, i - (lst.length - 1) / 2], 'C')); });
     }
-    // Shown: everyone within the radius, plus everything the plain family view always shows (never removed):
-    // all direct ancestors, siblings of the focus and of its parents, and two generations of descendants.
-    const base = new Set([F]);
-    (function addAnc(x) { [G[x].father, G[x].mother].forEach(q => { if (real(q) && !base.has(q)) { base.add(q); addAnc(q); } }); })(F);
-    [F, G[F].father, G[F].mother].filter(real).forEach(x => { fullSibs(x).forEach(k => base.add(k)); halfSibs(x).forEach(h => { base.add(h.k); if (real(h.other)) base.add(h.other); }); });
-    partnersOf(F).filter(real).forEach(q => base.add(q));
-    (function down(x, d) { if (d >= 2) return; childrenOf(x).forEach(c => { base.add(c); partnersOf(c).filter(real).forEach(q => base.add(q)); down(c, d + 1); }); })(F, 0);
-    const shown = new Set(Object.keys(dist).filter(k => dist[k] <= radius || base.has(k))), anchor = new Set();
+    // Shown: exactly the people within the radius - every line between two people is one link
+    // (a grandfather is 2 links away, an uncle 2: father, then his brother)
+    const shown = new Set(Object.keys(dist).filter(k => dist[k] <= radius)), anchor = new Set();
     if (trim) {   // a view whose lines would cross is built again with less in it - see render()
       const ancF = new Set(); (function up(x) { if (!real(x) || ancF.has(x)) return; ancF.add(x); up(G[x].father); up(G[x].mother); })(F);
       const lvlA = {}; (function up(x, d) { if (!real(x) || (x in lvlA && lvlA[x] <= d)) return; lvlA[x] = d; up(G[x].father, d + 1); up(G[x].mother, d + 1); })(F, 0);
@@ -2187,7 +2184,7 @@ window.NEXT_STEPS = [
     rowKeys.forEach(r => rows[r].forEach(it => { it.x = it.blk.x + it.off - minX + PAD; }));
     const top = rowKeys[0];
     const rowTop = (r) => PAD + (r - top) * (CH + VG);
-    return { rows, pos, fams, bare, rowTop, W: maxX - minX + PAD * 2, H: rowTop(rowKeys[rowKeys.length - 1]) + CH + PAD };
+    return { rows, pos, fams, bare, far: anchor, rowTop, W: maxX - minX + PAD * 2, H: rowTop(rowKeys[rowKeys.length - 1]) + CH + PAD };
   }
 
   const shortName = (he) => (he.length > 22 ? he.replace(/\s*\([^)]*\)/g, '') : he);
@@ -2197,7 +2194,8 @@ window.NEXT_STEPS = [
     const d = D(it.id), sex = d.sex === 'f' ? 'f' : 'm', prob = d.conf === 'probable';
     const badge = d.conf === 'probable' ? '<span class="tb prob">סביר</span>' : d.conf === 'confirmed' ? '<span class="tb conf">מאומת</span>' : '';
     const av = d.photo ? `<img src="${d.photo}" alt="">` : SIL[sex];
-    return `<div class="tcard ${sex}${it.id === sel ? ' focus' : ''}${prob ? ' prob' : ''}" data-id="${it.id}" tabindex="0" title="${esc(d.he)}" style="left:${it.x}px;top:${y}px;width:${CW}px;height:${CH}px">`
+    const far = L && L.far && L.far.has(it.id);   // beyond the chosen distance: shown only so a child's line has both parents
+    return `<div class="tcard ${sex}${it.id === sel ? ' focus' : ''}${prob ? ' prob' : ''}${far ? ' far' : ''}" data-id="${it.id}" tabindex="0" title="${esc(d.he)}${far ? ' – מחוץ למרחק שנבחר, מוצג רק כדי לחבר את הקו' : ''}" style="left:${it.x}px;top:${y}px;width:${CW}px;height:${CH}px">`
       + `${badge}<div class="tav">${av}</div><div class="ttx"><div class="tnm">${esc(shortName(d.he))}</div><div class="tyr">${esc(d.years || '')}${d.victim ? ' 🕯' : ''}</div></div></div>`;
   }
   function linesSVG(lay) {
@@ -2279,7 +2277,7 @@ window.NEXT_STEPS = [
     const items = Object.values(L.pos);
     stage.style.width = L.W + 'px'; stage.style.height = L.H + 'px';
     stage.innerHTML = linesSVG(L) + items.map(it => cardHTML(it, L.rowTop)).join('');
-    $('#tCount').textContent = `מוצגים ${items.filter(it => !it.ghost).length} מתוך ${Object.keys(G).filter(real).length} אנשים`;
+    $('#tCount').textContent = `מוצגים ${items.filter(it => !it.ghost && !L.far.has(it.id)).length} מתוך ${Object.keys(G).filter(real).length} אנשים`;
     stage.querySelectorAll('.tcard').forEach(el => {
       el.onclick = () => { if (!dragMoved) openPerson(el.dataset.id, G[el.dataset.id].rel); };
       el.onkeydown = (e) => { if (e.key === 'Enter') openPerson(el.dataset.id, G[el.dataset.id].rel); };
