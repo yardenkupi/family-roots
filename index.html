@@ -71,6 +71,8 @@
   .tcard .ttx { min-width: 0; flex: 1; text-align: right; }
   .tcard .tnm { font-weight: 700; font-size: .8rem; line-height: 1.2; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .tcard .tyr { font-size: .72rem; color: var(--ink-2); direction: ltr; text-align: right; margin-top: 2px; }
+  .tcard .tcand { width: 15px; height: 25px; flex: none; }
+  .legend .tcand { width: 10px; height: 17px; vertical-align: -3px; }
   .tcard .tb { position: absolute; top: -9px; left: 8px; font-size: .62rem; line-height: 15px; padding: 0 6px; border-radius: 8px; color: #fff; }
   .tb.prob { background: var(--probable); } .tb.conf { background: var(--confirmed); }
   .tg { position: absolute; border: 1.5px dashed var(--tghost); border-radius: 6px; display: grid; place-items: center; color: var(--tghost); font-weight: 700; font-size: .85rem; }
@@ -303,7 +305,7 @@
       <span><i class="sw" style="border-color:var(--tline)"></i>קשר מתועד או מאומת</span>
       <span><i class="sw dash" style="border-color:var(--probable)"></i>קשר סביר – השערה, ללא מסמך ישיר</span>
       <span><span class="tag confirmed">מאומת</span> מצבה או שתי ראיות</span>
-      <span>🕯 נספה בשואה</span>
+      <span><svg class="tcand" viewBox="0 0 16 26" aria-hidden="true"><path d="M8 1.5C10.6 5 11.4 6.6 11.4 8.4a3.4 3.4 0 0 1-6.8 0C4.6 6.6 5.4 5 8 1.5z" fill="#f29a1f"/><path d="M8 5.2c1.2 1.8 1.6 2.6 1.6 3.4a1.6 1.6 0 0 1-3.2 0c0-.8.4-1.6 1.6-3.4z" fill="#ffd76a"/><rect x="7.5" y="11.4" width="1" height="1.8" fill="#5a4a3a"/><rect x="4" y="13" width="8" height="12" rx="1.2" fill="#f6efe0" stroke="#9b8762"/></svg> נספה בשואה</span>
       <span><i class="lc" style="border-color:var(--m-line);border-style:dashed;opacity:.5"></i>מחוץ למרחק – מוצג רק כדי לחבר קו</span>
       <span style="color:var(--ink-2)">מרחק = מספר הקווים בין שני אנשים: הורה, ילד, בן/בת זוג או אח/ות הם קשר אחד; סבא הוא 2 קשרים (אבא, ואז אביו), וגם דוד הוא 2 קשרים (אבא, ואז אחיו) · לחיצה על אדם מסמנת אותו ופותחת את פרטיו (האילן לא משתנה); "הצג את האילן סביב…" בכרטיס בונה את האילן סביבו, ו-⌂ מחזיר אליך · גרירה להזזה · גלגלת להגדלה</span>
     </div>
@@ -1911,6 +1913,7 @@ window.NEXT_STEPS = [
   (function up(id, d) { if (!real(id) || id in ANC) return; ANC[id] = d; up(G[id].father, d + 1); up(G[id].mother, d + 1); })(ROOT, 0);
 
   // ---------- tree: MyHeritage-style family view around one focus person ----------
+  const CANDLE = `<svg class="tcand" viewBox="0 0 16 26" role="img" aria-label="נספה בשואה"><title>נספה בשואה</title><path d="M8 1.5C10.6 5 11.4 6.6 11.4 8.4a3.4 3.4 0 0 1-6.8 0C4.6 6.6 5.4 5 8 1.5z" fill="#f29a1f"/><path d="M8 5.2c1.2 1.8 1.6 2.6 1.6 3.4a1.6 1.6 0 0 1-3.2 0c0-.8.4-1.6 1.6-3.4z" fill="#ffd76a"/><rect x="7.5" y="11.4" width="1" height="1.8" fill="#5a4a3a"/><rect x="4" y="13" width="8" height="12" rx="1.2" fill="#f6efe0" stroke="#9b8762"/></svg>`;   // Holocaust victims' tree cards
   const CW = 176, CH = 62, GW = 30, VG = 58, CG = 10, SG = 16, FG = 36, PAD = 60;
   const SIL = {
     m: `<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="6" fill="#b3b3b3"/><path d="M5 30c1-7 5.5-10 11-10s10 3 11 10z" fill="#b3b3b3"/></svg>`,
@@ -2196,7 +2199,7 @@ window.NEXT_STEPS = [
     const av = d.photo ? `<img src="${d.photo}" alt="">` : SIL[sex];
     const far = L && L.far && L.far.has(it.id);   // beyond the chosen distance: shown only so a child's line has both parents
     return `<div class="tcard ${sex}${it.id === sel ? ' focus' : ''}${prob ? ' prob' : ''}${far ? ' far' : ''}" data-id="${it.id}" tabindex="0" title="${esc(d.he)}${far ? ' – מחוץ למרחק שנבחר, מוצג רק כדי לחבר את הקו' : ''}" style="left:${it.x}px;top:${y}px;width:${CW}px;height:${CH}px">`
-      + `${badge}<div class="tav">${av}</div><div class="ttx"><div class="tnm">${esc(shortName(d.he))}</div><div class="tyr">${esc(d.years || '')}${d.victim ? ' 🕯' : ''}</div></div></div>`;
+      + `${badge}<div class="tav">${av}</div><div class="ttx"><div class="tnm">${esc(shortName(d.he))}</div><div class="tyr">${esc(d.years || '')}</div></div>${d.victim ? CANDLE : ''}</div>`;
   }
   function linesSVG(lay) {
     const { pos, fams, rowTop } = lay, out = [];
