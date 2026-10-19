@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="origin">
-<title>שורשי משפחת קופרברג–פאר</title>
+<title>המשפחה שלי</title>
 <style>[hidden]{display:none!important}
 
   :root {
@@ -49,7 +49,8 @@
   .tbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 4px 0 10px; }
   #tSearch { font: inherit; font-size: .92rem; padding: 6px 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); width: 230px; max-width: 100%; }
   .tbar label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-size: .9rem; }
-  #tRadius { font: inherit; font-size: .9rem; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+  #tMe { max-width: 220px; }
+  #tRadius, #tMe { font: inherit; font-size: .9rem; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
   .tcount { margin-inline-start: auto; color: var(--ink-2); font-size: .88rem; }
   .tv { position: relative; height: min(74vh, 880px); min-height: 420px; overflow: hidden; background: var(--tree-bg); border: 1px solid var(--line); border-radius: 12px; touch-action: none; cursor: grab; direction: ltr; user-select: none; }
   .tv.drag { cursor: grabbing; }
@@ -274,7 +275,7 @@
 <body>
 
 <header>
-  <h1>שורשי משפחת קופרברג–פאר</h1>
+  <h1>המשפחה שלי</h1>
   <div class="sub">מסמכי המשפחה, עדויות, יד ושם וארכיונים – כל פרט מקושר למקור שלו. לחצו על אדם באילן כדי לראות פרטים, להציע תיקון או להוסיף קרוב.</div>
   <nav id="nav">
     <button data-v="tree" class="on">אילן יוחסין</button>
@@ -291,6 +292,7 @@
     <div class="tbar">
       <input id="tSearch" type="search" list="tNames" placeholder="חפש..." autocomplete="off" aria-label="חיפוש אדם באילן">
       <datalist id="tNames"></datalist>
+      <label>אני: <select id="tMe" aria-label="מי אני – הקשרים מחושבים ממני"></select></label>
       <label>מרחק: <select id="tRadius" aria-label="כמה קשרים להציג סביב האדם במרכז"><option value="1">קשר אחד</option><option value="2">2 קשרים</option><option value="3">3 קשרים</option><option value="4" selected>4 קשרים</option><option value="5">5 קשרים</option><option value="6">6 קשרים</option><option value="99">כל המשפחה</option></select></label>
       <span class="tcount" id="tCount"></span>
     </div>
@@ -1909,8 +1911,109 @@ window.NEXT_STEPS = [
     const key = (k, i) => (grp !== null ? (ORD[k] && ORD[k][0] === grp ? ORD[k][1] : 99) : (yearOf(k) ?? 9999)) * 1000 + i;
     return ids.map((k, i) => [k, key(k, i)]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
   }
-  const ANC = {};   // generations above ROOT, for the relationship label
-  (function up(id, d) { if (!real(id) || id in ANC) return; ANC[id] = d; up(G[id].father, d + 1); up(G[id].mother, d + 1); })(ROOT, 0);
+  // ---------- relationships: counted from ME ("who am I") ----------
+  let ME = ROOT;   // the person relationships are counted from - each viewer picks it, this browser remembers it
+  try { const m = localStorage.getItem('family-me'); if (m && real(m)) ME = m; } catch (_) { /* storage blocked: start from Yarden */ }
+  const isF = (k) => real(k) && D(k).sex === 'f';
+  const shortOf = (k) => D(k).short || D(k).he.split(' ')[0];
+  // x's ancestors, unknown parents included (siblings who share them still meet): id -> path [x, ..., ancestor]
+  function upPaths(x) {
+    const out = { [x]: [x] }, todo = [x];
+    for (let i = 0; i < todo.length; i++) {
+      const y = todo[i];
+      [G[y].father, G[y].mother].forEach(q => { if (q && G[q] && !(q in out)) { out[q] = [...out[y], q]; todo.push(q); } });
+    }
+    return out;
+  }
+  // closest blood link from a to b: u generations up to a shared ancestor, then d down; pa / pb = the two paths
+  function bloodLink(a, b) {
+    const A = upPaths(a), B = upPaths(b);
+    let best = null;
+    for (const c in A) if (c in B) { const u = A[c].length - 1, d = B[c].length - 1; if (!best || u + d < best.u + best.d) best = { u, d, pa: A[c], pb: B[c] }; }
+    return best;
+  }
+  const ANC_T = [null, ['אבא', 'אמא'], ['סבא', 'סבתא'], ['סבא רבא', 'סבתא רבתא']];
+  const DESC_T = [null, ['בן', 'בת'], ['נכד', 'נכדה'], ['נין', 'נינה']];
+  const word = (pair, k) => pair[isF(k) ? 1 : 0];
+  // the one Hebrew word for b's link, when there is one ('' = the same person, null = none)
+  function namedBlood(l, b) {
+    const { u, d } = l;
+    if (!u && !d) return '';
+    if (!d) return u <= 3 ? word(ANC_T[u], b) : null;
+    if (!u) return d <= 3 ? word(DESC_T[d], b) : null;
+    if (u === 1 && d === 1) { const a = l.pa[0], full = G[a].father === G[b].father && G[a].mother === G[b].mother; return isF(b) ? (full ? 'אחות' : 'אחות למחצה') : (full ? 'אח' : 'אח למחצה'); }
+    if (u === 2 && d === 1) return isF(b) ? 'דודה' : 'דוד';
+    if (u === 1 && d === 2) return isF(b) ? 'אחיינית' : 'אחיין';
+    if (u === 2 && d === 2) return isF(b) ? 'בת דודה' : 'בן דוד';
+    if (u === 3 && d === 3) return isF(b) ? 'בת דודה שנייה' : 'בן דוד שני';
+    return null;
+  }
+  const TITLES = new Set(['אבא', 'אמא', 'סבא', 'סבתא', 'סבא רבא', 'סבתא רבתא', 'דוד', 'דודה']);
+  // "סבא אברהם", "ירדן (נכד)"; a person whose own label is already compound is named alone ("אמא של גלית")
+  const named = (k, t) => (t.includes('(') ? shortOf(k) : TITLES.has(t) ? `${t} ${shortOf(k)}` : `${shortOf(k)} (${t})`);
+  // b as a blood relative of a; with no single word, through a relative on the way ("דוד של אבא יוסף")
+  function bloodTerm(a, b) {
+    const l = bloodLink(a, b); if (!l) return null;
+    const t = namedBlood(l, b); if (t !== null) return t;
+    for (let j = 1; j < l.u && j <= 3; j++) {   // through an ancestor of a
+      const w = l.pa[j]; if (!real(w)) continue;
+      const t2 = namedBlood({ u: l.u - j, d: l.d, pa: l.pa.slice(j), pb: l.pb }, b); if (t2) return `${t2} של ${named(w, word(ANC_T[j], w))}`;
+    }
+    for (let i = 1; i < l.d && i <= 3; i++) {   // through an ancestor of b
+      const w = l.pb[i]; if (!real(w)) continue;
+      const t2 = namedBlood({ u: l.u, d: l.d - i, pa: l.pa, pb: l.pb.slice(i) }, w); if (t2) return `${word(DESC_T[i], b)} של ${named(w, t2)}`;
+    }
+    return null;
+  }
+  const mateOf = (x, w) => (isF(x) && !isF(w) ? 'אשתו' : !isF(x) && isF(w) ? 'בעלה' : isF(x) ? 'בת הזוג' : 'בן הזוג');
+  // the people me has a direct word for (blood, partner, a blood relative's partner, the partner's blood relatives):
+  // id -> { t: term, n: lines between them }
+  function closeKin(me, id) {
+    const b = bloodLink(me, id), bt = b && bloodTerm(me, id);
+    if (bt !== null && bt !== undefined && b) return { t: bt || (isF(me) ? 'זו את' : 'זה אתה'), n: b.u + b.d };
+    const mates = partnersOf(me).filter(real);
+    if (mates.includes(id)) return { t: isF(id) ? 'בת זוג' : 'בן זוג', n: 1 };
+    let best = null;   // the partner of a blood relative - the closest one
+    partnersOf(id).filter(real).forEach(w => {
+      const l = bloodLink(me, w), t = l && bloodTerm(me, w); if (!t || (best && l.u + l.d + 1 >= best.n)) return;
+      const s = l.u === 1 && l.d === 1 ? (isF(id) ? 'גיסה' : 'גיס') : l.u === 0 && l.d === 1 ? (isF(id) ? 'כלה' : 'חתן') : `${mateOf(id, w)} של ${named(w, t)}`;
+      best = { t: s, n: l.u + l.d + 1 };
+    });
+    if (best) return best;
+    for (const m of mates) {   // a blood relative of the partner
+      const l = bloodLink(m, id); if (!l) continue;
+      if (l.u === 1 && l.d === 0) return { t: isF(me) ? (isF(id) ? 'חמות' : 'חם') : (isF(id) ? 'חותנת' : 'חותן'), n: 2 };
+      if (l.u === 1 && l.d === 1) return { t: isF(id) ? 'גיסה' : 'גיס', n: 3 };
+      const t = bloodTerm(m, id); if (t) return { t: `${t} של ${shortOf(m)}`, n: l.u + l.d + 1 };
+    }
+    return null;
+  }
+  const KIN_CACHE = {};
+  function kin(me, id) {
+    if (!real(me) || !real(id)) return '';
+    const near = KIN_CACHE[me] || (KIN_CACHE[me] = Object.fromEntries(Object.keys(G).filter(real).map(k => [k, closeKin(me, k)]).filter(([, v]) => v)));
+    if (near[id]) return near[id].t;
+    // anyone else: through the closest person with a direct word ("אבא של יוסף (חתן)", "אשתו של צבי (דוד של אבא יוסף)")
+    let best = null;
+    for (const w in near) {
+      if (w === me) continue;
+      const tw = near[w], l = bloodLink(w, id), bt = l && bloodTerm(w, id);
+      if (bt && (!best || tw.n + l.u + l.d < best.n)) {
+        const inlaw = (tw.t === 'חתן' || tw.t === 'כלה') && l.u === 1 && l.d === 0;   // the parents of a child's partner
+        best = { n: tw.n + l.u + l.d, t: inlaw ? (isF(id) ? 'מחותנת' : 'מחותן') : `${bt} של ${named(w, tw.t)}` };
+      }
+      if (partnersOf(w).includes(id) && (!best || tw.n + 1 < best.n)) best = { n: tw.n + 1, t: `${mateOf(id, w)} של ${named(w, tw.t)}` };
+    }
+    return best ? best.t : '';
+  }
+  const relTo = (id) => kin(ME, id);
+  // the hand-written relation lines call Yarden's grandparents "סבא/סבתא" - say so when someone else is "me"
+  const relNote = (t) => (ME !== ROOT && /סבא|סבתא/.test(t) && !t.includes('ירדן') ? `${t} (ביחס לירדן)` : t);
+  function relLabel(id, isRel) {
+    const p = isRel ? R[id] : P[id];
+    if (isRel && ME === ROOT && p.relation) return p.relation;
+    return relTo(id) || (p.relation ? relNote(p.relation) : '');
+  }
 
   // ---------- tree: MyHeritage-style family view around one focus person ----------
   const CANDLE = `<svg class="tcand" viewBox="0 0 16 26" role="img" aria-label="נספה בשואה"><title>נספה בשואה</title><path d="M8 1.5C10.6 5 11.4 6.6 11.4 8.4a3.4 3.4 0 0 1-6.8 0C4.6 6.6 5.4 5 8 1.5z" fill="#f29a1f"/><path d="M8 5.2c1.2 1.8 1.6 2.6 1.6 3.4a1.6 1.6 0 0 1-3.2 0c0-.8.4-1.6 1.6-3.4z" fill="#ffd76a"/><rect x="7.5" y="11.4" width="1" height="1.8" fill="#5a4a3a"/><rect x="4" y="13" width="8" height="12" rx="1.2" fill="#f6efe0" stroke="#9b8762"/></svg>`;   // Holocaust victims' tree cards
@@ -1921,7 +2024,7 @@ window.NEXT_STEPS = [
   };
   // focus: the person the tree is built around; sel: the highlighted person whose panel is open.
   // Like MyHeritage, clicking a card only selects it - the tree is rebuilt only on request.
-  let focus = ROOT, sel = ROOT, radius = 4, L = null, needsCenter = false;   // radius: family links shown around the focus
+  let focus = ME, sel = ME, radius = 4, L = null, needsCenter = false;   // radius: family links shown around the focus
   const V = { s: 0.8, tx: 0, ty: 0 };
   const tv = $('#tv'), stage = $('#tstage');
 
@@ -2340,8 +2443,14 @@ window.NEXT_STEPS = [
   document.body.classList.add('treeview');
   tv.addEventListener('wheel', (e) => { e.preventDefault(); const vr = tv.getBoundingClientRect(); zoomBy(Math.exp(-e.deltaY * 0.0015), e.clientX - vr.left, e.clientY - vr.top); }, { passive: false });
   $('#zIn').onclick = () => zoomBy(1.2); $('#zOut').onclick = () => zoomBy(1 / 1.2); $('#zFit').onclick = fit;
-  $('#zHome').onclick = () => setFocus(ROOT);
+  $('#zHome').onclick = () => setFocus(ME);
   $('#tRadius').onchange = (e) => { radius = +e.target.value; render(); centerOn(L.pos[sel] ? sel : focus, true); };
+  // "who am I": the relationships, the opening view and the home button all start from the chosen person
+  const meSel = $('#tMe'), homeTitle = () => { const t = `חזרה אל ${shortOf(ME)}`; $('#zHome').title = t; $('#zHome').setAttribute('aria-label', t); };
+  meSel.innerHTML = Object.keys(G).filter(real).map(k => [k, D(k).he + (D(k).years ? ` · ${D(k).years}` : '')]).sort((a, b) => a[1].localeCompare(b[1], 'he'))
+    .map(([k, t]) => `<option value="${k}">${esc(t)}</option>`).join('');
+  meSel.value = ME; homeTitle();
+  meSel.onchange = () => { ME = meSel.value; try { localStorage.setItem('family-me', ME); } catch (_) { /* not remembered */ } homeTitle(); closePanel(); setFocus(ME); };
   // search box (MyHeritage's "חפש...")
   const NAMES = {};
   Object.keys(G).filter(real).forEach(k => { const d = D(k); let label = d.he + (d.years ? ` · ${d.years}` : ''); if (NAMES[label]) label += ` · ${d.relation || relTo(k)}`; NAMES[label] = k; });
@@ -2356,15 +2465,6 @@ window.NEXT_STEPS = [
 
   // ---------- relationships ----------
   const initials = (he) => { const w = he.replace(/\([^)]*\)/g, ' ').replace(/["']/g, '').trim().split(/\s+/); return (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : '')); };
-  function relTo(id) {
-    if (!(id in ANC)) return '';
-    const g = ANC[id], f = D(id).sex === 'f';
-    if (g === 0) return 'זה אתה';
-    if (g === 1) return f ? 'אמא' : 'אבא';
-    if (g === 2) return f ? 'סבתא' : 'סבא';
-    if (g === 3) return f ? 'סבתא רבתא' : 'סבא רבא';
-    return f ? 'אם של סבתא רבתא/סבא רבא' : 'אב של סבתא רבתא/סבא רבא';
-  }
 
   // ---------- citations ----------
   let citeOrder = [];
@@ -2436,7 +2536,7 @@ window.NEXT_STEPS = [
       ...partnersOf(id).map(k => fchip(k, 'בן/בת זוג:')), ...childrenOf(id).map(k => fchip(k, 'ילד/ה:')), ...(p.relatives || []).map(k => fchip(k, 'קרוב:')), ...back.map(k => fchip(k, 'קרוב:'))].filter(Boolean);
     let fam = famItems.length ? `<h3>משפחה</h3><div class="fam">${famItems.join('')}</div>` : '';
     if (isRel) {
-      fam = `<h3>קשר למשפחה</h3><div class="fam"><span class="chip static">${esc(p.relation)} ${confTag(p.conf)}</span></div>` + fam;
+      fam = `<h3>קשר למשפחה</h3><div class="fam"><span class="chip static">${esc(relNote(p.relation))} ${confTag(p.conf)}</span></div>` + fam;
       if (p.links) fam += `<h3>רשומות ביד ושם</h3><div class="fam">${p.links.map(l => `<a class="chip" href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join('')}</div>`;
     }
     if (id !== focus) fam += `<div class="fam"><button class="chip" data-pivot="${id}">הצג את האילן סביב ${esc(p.short || p.he.split(' ')[0])} ←</button></div>`;
@@ -2444,7 +2544,7 @@ window.NEXT_STEPS = [
     const srcList = citeOrder.map((s, i) => `<li data-src="${s}"><span class="kd k-${S[s].kind}">${KIND[S[s].kind]}</span>${esc(S[s].title)}${S[s].desc ? ` <span style="color:var(--ink-2)">– ${esc(S[s].desc)}</span>` : ''}</li>`).join('');
     const banner = (p.conf === 'probable') ? `<div class="banner"><b>השערה מחקרית.</b> הקשר של אדם זה למשפחה סביר, על סמך ראיות נסיבתיות – לא מסמך ישיר. ראו פירוט במקורות ובלשונית "יומן מחקר".</div>` : '';
     const av = p.photo ? `<img src="${p.photo}" alt="">` : esc(initials(p.he));
-    return `<div class="p-head"><div class="av" data-photo="${p.photo || ''}">${av}</div><div><div class="rel">${esc(isRel ? p.relation : relTo(id))}</div><h2>${esc(p.he)}</h2><div class="en">${esc(p.en)}${p.years ? ' · ' + esc(p.years) : ''}</div></div><button class="close" aria-label="סגור">✕</button></div>
+    return `<div class="p-head"><div class="av" data-photo="${p.photo || ''}">${av}</div><div><div class="rel">${esc(relLabel(id, isRel))}</div><h2>${esc(p.he)}</h2><div class="en">${esc(p.en)}${p.years ? ' · ' + esc(p.years) : ''}</div></div><button class="close" aria-label="סגור">✕</button></div>
       <div class="p-body">${banner}<h3>פרטים</h3><table class="facts">${facts}</table><h3>הסיפור</h3><div class="story">${story}</div>${journeySec}${graveSec}${notes}${fam}${window.APP && window.APP.panelExtra ? window.APP.panelExtra(id, isRel) : ''}<h3>מסמכים (${citeOrder.length})</h3><div class="docs">${docs}</div><h3>מקורות</h3><ol class="srcs">${srcList}</ol></div>`;
   }
   function openPerson(id, isRel) {
@@ -2780,7 +2880,7 @@ window.NEXT_STEPS = [
   function claudeFile(doc, authorName, contact, sentAt) {
     const who = (id) => (id && G[id] ? { id, name: D(id).he } : null);
     const f = { type: 'family-roots-suggestion', version: 1,
-      for_claude: 'הצעה מאתר שורשי המשפחה (yardenkupi.github.io/family-roots). להחיל אותה על נתוני האתר (data.js ו-family_*.js בתיקיית Kuperberg-Family-Roots) לפי כלל הראיות: מה שבן משפחה מוסר נרשם כעדות משפחתית עם תאריך ושם המוסר, ולא מקשרים אנשים לפי דמיון שמות בלבד; אחר כך לבנות מחדש ולפרסם את שתי הגרסאות של האתר.',
+      for_claude: 'הצעה מאתר "המשפחה שלי" (yardenkupi.github.io/family-roots). להחיל אותה על נתוני האתר (data.js ו-family_*.js בתיקיית Kuperberg-Family-Roots) לפי כלל הראיות: מה שבן משפחה מוסר נרשם כעדות משפחתית עם תאריך ושם המוסר, ולא מקשרים אנשים לפי דמיון שמות בלבד; אחר כך לבנות מחדש ולפרסם את שתי הגרסאות של האתר.',
       kind: doc.kind, sent_at: sentAt, sent_from: location.href.split('#')[0], author: { name: authorName, contact: contact || null } };
     if (doc.kind === 'new_person') {
       const n = doc.newPerson;
@@ -2805,7 +2905,7 @@ window.NEXT_STEPS = [
     const body = Object.fromEntries(Object.entries({ ...emailFields(doc), 'נשלח ע"י': authorName, 'פרטי קשר': contact, 'נשלח מ': location.href.split('#')[0], 'קובץ לעדכון': 'מצורף – אפשר לגרור אותו ל-Claude' }).filter(([, v]) => v));
     const now = new Date(), stamp = now.toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
     const fd = new FormData();
-    Object.entries({ _subject: `אתר המשפחה: ${what}`, _template: 'table', _captcha: 'false', ...body }).forEach(([k, v]) => fd.append(k, v));
+    Object.entries({ _subject: `המשפחה שלי: ${what}`, _template: 'table', _captcha: 'false', ...body }).forEach(([k, v]) => fd.append(k, v));
     fd.append('attachment', new File([JSON.stringify(claudeFile(doc, authorName, contact, now.toISOString()), null, 2)], `family-roots-${doc.kind}-${stamp}.json`, { type: 'application/json' }));
     try {
       const r = await fetch(ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd });
