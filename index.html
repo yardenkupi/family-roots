@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="referrer" content="origin">
 <title>המשפחה שלי</title>
 <style>[hidden]{display:none!important}
 
@@ -1790,7 +1789,7 @@ window.NEXT_STEPS = [
   };
 })();
 </script>
-<script>window.PDF_PAGES={};for(const s of Object.values(window.SOURCES))if(s.files)s.files=s.files.flatMap(f=>window.PDF_PAGES[f]||[f]);window.PUBLIC_LIVING=["yarden", "maayan", "gal", "yosef", "galit", "ayala", "michal", "sharon", "gilad", "varda", "amikam_k", "zeev_z", "yitzhak_zfb", "zvi_greif", "hela_r", "zvi_k", "hen"];window.PUBLIC_HIDDEN_FILES=["docs/eligibility_arie.pdf", "docs/il_01.jpg", "docs/il_02.jpg", "docs/il_03.jpg", "docs/il_04.jpg", "docs/il_05.jpg", "docs/il_06.jpg", "docs/il_07.jpg", "docs/il_08.jpg", "docs/il_09.jpg", "docs/il_10.jpg", "docs/il_11.jpg", "docs/il_12.jpg", "docs/il_13.jpg", "docs/il_14.jpg", "docs/il_15.jpg", "docs/il_16.jpg", "docs/il_17.jpg", "docs/il_18.jpg", "docs/il_19.jpg", "docs/il_20.jpg", "docs/il_21.jpg", "docs/il_22.jpg", "docs/il_23.jpg", "docs/il_24.jpg", "docs/il_25.jpg", "docs/marriage1962_1.jpg", "docs/marriage1962_2.jpg", "docs/marriage1962_3.jpg", "docs/marriage1962_4.jpg", "docs/namechange_1966.jpg", "docs/q_arie.pdf", "docs/q_avraham.pdf", "docs/q_shoshana.pdf", "docs/roots_project.pdf", "img/varda_1962.jpg"];window.PUBLIC_FORM_ENDPOINT="https://formsubmit.co/ajax/yardenkupi@gmail.com";</script>
+<script>window.PDF_PAGES={};for(const s of Object.values(window.SOURCES))if(s.files)s.files=s.files.flatMap(f=>window.PDF_PAGES[f]||[f]);window.PUBLIC_LIVING=["yarden", "maayan", "gal", "yosef", "galit", "ayala", "michal", "sharon", "gilad", "varda", "amikam_k", "zeev_z", "yitzhak_zfb", "zvi_greif", "hela_r", "zvi_k", "hen"];window.PUBLIC_HIDDEN_FILES=["docs/eligibility_arie.pdf", "docs/il_01.jpg", "docs/il_02.jpg", "docs/il_03.jpg", "docs/il_04.jpg", "docs/il_05.jpg", "docs/il_06.jpg", "docs/il_07.jpg", "docs/il_08.jpg", "docs/il_09.jpg", "docs/il_10.jpg", "docs/il_11.jpg", "docs/il_12.jpg", "docs/il_13.jpg", "docs/il_14.jpg", "docs/il_15.jpg", "docs/il_16.jpg", "docs/il_17.jpg", "docs/il_18.jpg", "docs/il_19.jpg", "docs/il_20.jpg", "docs/il_21.jpg", "docs/il_22.jpg", "docs/il_23.jpg", "docs/il_24.jpg", "docs/il_25.jpg", "docs/marriage1962_1.jpg", "docs/marriage1962_2.jpg", "docs/marriage1962_3.jpg", "docs/marriage1962_4.jpg", "docs/namechange_1966.jpg", "docs/q_arie.pdf", "docs/q_avraham.pdf", "docs/q_shoshana.pdf", "docs/roots_project.pdf", "img/varda_1962.jpg"];window.PUBLIC_MAIL_TO="yardenkupi@gmail.com";</script>
 <script>// PUBLIC COPY ONLY (GitHub Pages). Runs after the data scripts, before the site script.
 // Living people: their documents and photos are left out, and their exact dates become years -
 // everywhere on the site, not only on their own cards.
@@ -2720,11 +2719,12 @@ window.NEXT_STEPS = [
 })();
 </script>
 <script>// Family app layer - PUBLIC COPY (GitHub Pages). Relatives suggest corrections and new people;
-// each suggestion is emailed to Yarden through FormSubmit and never changes the site by itself.
+// each suggestion opens in the visitor's own email app, addressed to Yarden - the page itself sends nothing anywhere -
+// and never changes the site by itself.
 (() => {
   const SITE = window.SITE; if (!SITE) return;
   const { G, D, S, real, esc } = SITE;
-  const ENDPOINT = window.PUBLIC_FORM_ENDPOINT;   // set by the build
+  const MAIL_TO = window.PUBLIC_MAIL_TO;   // set by the build
   const F = window.APPFORMS;
   const $ = (q, r = document) => r.querySelector(q);
   const FIELDS = ['שם', 'תאריכים', 'מקומות', 'קשר משפחתי', 'הסיפור', 'תמונה או מסמך', 'אחר'];
@@ -2779,10 +2779,7 @@ window.NEXT_STEPS = [
   };
 
   // ---------- forms ----------
-  // "website" is a honeypot: people never see it, spam bots fill it in
-  const nameField = () => `<label>השם שלך *<input id="fmName" autocomplete="name" value="${esc(store.get('famName') || '')}" placeholder="כדי שירדן ידע מי שלח"></label>
-    <label>טלפון או מייל לחזרה (לא חובה)<input id="fmContact" dir="ltr" autocomplete="email" value="${esc(store.get('famContact') || '')}"></label>
-    <input id="fmHp" class="app-hp" tabindex="-1" autocomplete="off" aria-hidden="true">`;
+  const nameField = () => `<label>השם שלך (לא חובה)<input id="fmName" autocomplete="name" value="${esc(store.get('famName') || '')}" placeholder="יופיע בהודעה לירדן"></label>`;
 
   function openSuggest(id) {
     const d = D(id);
@@ -2864,7 +2861,7 @@ window.NEXT_STEPS = [
   }
   function showErr(msg) { const e = $('#fmErr'); if (e) e.textContent = msg; }
 
-  // one email per suggestion: FormSubmit turns each field into a row of a table
+  // one email per suggestion: each field is a line of the message
   function emailFields(doc) {
     if (doc.kind === 'new_person') {
       const n = doc.newPerson, sex = n.sex === 'm' ? 'גבר' : n.sex === 'f' ? 'אישה' : '';
@@ -2876,12 +2873,11 @@ window.NEXT_STEPS = [
     return { 'סוג': 'תיקון', 'אדם': doc.personName, 'מזהה באתר': doc.personId, 'מה לתקן': doc.field, 'מה כתוב עכשיו': doc.current, 'מה צריך להיות': doc.proposed, 'מקור': doc.source };
   }
 
-  // A structured copy of the suggestion, attached to the email as a .json file: drop it into Claude to apply the change.
-  function claudeFile(doc, authorName, contact, sentAt) {
+  // A structured copy of the suggestion, as the last line of the email: paste it into Claude to apply the change.
+  function claudeFile(doc, authorName, sentAt) {
     const who = (id) => (id && G[id] ? { id, name: D(id).he } : null);
     const f = { type: 'family-roots-suggestion', version: 1,
-      for_claude: 'הצעה מאתר "המשפחה שלי" (yardenkupi.github.io/family-roots). להחיל אותה על נתוני האתר (data.js ו-family_*.js בתיקיית Kuperberg-Family-Roots) לפי כלל הראיות: מה שבן משפחה מוסר נרשם כעדות משפחתית עם תאריך ושם המוסר, ולא מקשרים אנשים לפי דמיון שמות בלבד; אחר כך לבנות מחדש ולפרסם את שתי הגרסאות של האתר.',
-      kind: doc.kind, sent_at: sentAt, sent_from: location.href.split('#')[0], author: { name: authorName, contact: contact || null } };
+      kind: doc.kind, sent_at: sentAt, author: { name: authorName || null } };
     if (doc.kind === 'new_person') {
       const n = doc.newPerson;
       f.new_person = { name_he: n.he, name_en: n.en || null, sex: n.sex || null, relation: n.rel, relation_he: RELS[n.rel] || null, of: who(doc.personId),
@@ -2895,28 +2891,28 @@ window.NEXT_STEPS = [
     return f;
   }
 
-  async function submit(doc) {
-    const authorName = ($('#fmName')?.value || '').trim(), contact = ($('#fmContact')?.value || '').trim();
-    if (!authorName) return showErr('כתבו את השם שלך, כדי שירדן ידע מי שלח.');
-    if ($('#fmHp')?.value) { closeModal(); return; }   // a bot filled the hidden field
-    store.set('famName', authorName); if (contact) store.set('famContact', contact);
-    const btn = $('#fmSend'); btn.disabled = true; btn.textContent = 'שולח…';
+  // The message opens in the visitor's own email app (or is copied by hand) - the page itself sends nothing.
+  function submit(doc) {
+    const authorName = ($('#fmName')?.value || '').trim();
+    if (authorName) store.set('famName', authorName);
     const what = doc.kind === 'new_person' ? `אדם חדש – ${doc.newPerson.he}` : doc.kind === 'general' ? `הערה – ${doc.where || 'כללי'}` : `תיקון – ${doc.personName}`;
-    const body = Object.fromEntries(Object.entries({ ...emailFields(doc), 'נשלח ע"י': authorName, 'פרטי קשר': contact, 'נשלח מ': location.href.split('#')[0], 'קובץ לעדכון': 'מצורף – אפשר לגרור אותו ל-Claude' }).filter(([, v]) => v));
-    const now = new Date(), stamp = now.toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
-    const fd = new FormData();
-    Object.entries({ _subject: `המשפחה שלי: ${what}`, _template: 'table', _captcha: 'false', ...body }).forEach(([k, v]) => fd.append(k, v));
-    fd.append('attachment', new File([JSON.stringify(claudeFile(doc, authorName, contact, now.toISOString()), null, 2)], `family-roots-${doc.kind}-${stamp}.json`, { type: 'application/json' }));
-    try {
-      const r = await fetch(ENDPOINT, { method: 'POST', headers: { Accept: 'application/json' }, body: fd });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || String(j.success) !== 'true') { const err = new Error(j.message || 'send failed'); err.activation = /activat/i.test(j.message || ''); throw err; }
-      const list = sent(); list.unshift({ ...doc, authorName, createdAt: new Date().toISOString() }); store.set('famSent', JSON.stringify(list.slice(0, 100)));
-      closeModal(); toast('נשלח לירדן – תודה!'); renderMine();
-    } catch (e) {
-      btn.disabled = false; btn.textContent = 'שליחה לירדן';
-      showErr(e && e.activation ? 'תיבת ההצעות עוד לא הופעלה – ירדן צריך לאשר אותה במייל. מה שכתבת נשאר כאן: נסו שוב מאוחר יותר.' : 'השליחה לא הצליחה. בדקו שיש חיבור לאינטרנט ונסו שוב בעוד רגע.');
-    }
+    const lines = Object.entries({ ...emailFields(doc), 'נשלח ע"י': authorName, 'נשלח מ': location.href.split('#')[0] }).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`);
+    const json = JSON.stringify(claudeFile(doc, authorName, new Date().toISOString()), (k, v) => (v === null ? undefined : v));
+    const subject = `המשפחה שלי: ${what}`, body = [...lines, '', '---- לעדכון האתר (להעביר ל-Claude) ----', json].join('\r\n');
+    const href = `mailto:${MAIL_TO}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    let kept = false;
+    const remember = () => { if (kept) return; kept = true; const list = sent(); list.unshift({ ...doc, authorName, createdAt: new Date().toISOString() }); store.set('famSent', JSON.stringify(list.slice(0, 100))); renderMine(); };
+    openModal(`<h2 id="amTitle">ההודעה מוכנה</h2>
+      <p class="app-hint">לחצו "פתיחה במייל" – תוכנת המייל שלכם תיפתח עם הכל ממולא, ונשאר רק ללחוץ "שליחה".</p>
+      <div class="app-foot"><a class="app-btn" id="mlOpen" href="${esc(href)}">✉ פתיחה במייל</a><button class="app-btn ghost" type="button" id="mlCopy">העתקת ההודעה</button></div>
+      <p class="app-hint">לא נפתח כלום? העתיקו את ההודעה ושלחו אותה ל-<b dir="ltr">${esc(MAIL_TO)}</b>.</p>
+      <details class="app-hint"><summary>הטקסט המלא</summary><textarea readonly rows="7" style="width:100%">${esc(`${subject}\n\n${body}`)}</textarea></details>
+      <div class="app-foot"><button class="app-btn ghost" type="button" data-close>סגירה</button></div>`);
+    sheet.querySelector('[data-close]').onclick = closeModal;
+    $('#mlOpen').onclick = remember;
+    $('#mlCopy').onclick = async () => {
+      try { await navigator.clipboard.writeText(`${subject}\n\n${body}`); remember(); toast('ההודעה הועתקה'); } catch (_) { toast('ההעתקה לא הצליחה – סמנו את "הטקסט המלא" והעתיקו ידנית'); }
+    };
   }
 
   // ---------- "my suggestions": what this device sent ----------
@@ -2931,7 +2927,7 @@ window.NEXT_STEPS = [
     } else {
       body = `<div class="sug-what"><b>תיקון:</b> ${esc(s.field || '')} – ${target}</div><dl class="sug-dl"><dt>צריך להיות</dt><dd>${esc(s.proposed || '')}</dd></dl>`;
     }
-    return `<article class="sugcard s-pending"><div class="sug-head"><span class="pill s-pending">נשלחה</span><span class="sug-meta">${fmtDate(s.createdAt)}</span></div>${body}</article>`;
+    return `<article class="sugcard s-pending"><div class="sug-head"><span class="pill s-pending">הוכנה במייל</span><span class="sug-meta">${fmtDate(s.createdAt)}</span></div>${body}</article>`;
   }
   function renderMine() {
     const mine = sent(), c = $('#mineCount'); c.hidden = !mine.length; c.textContent = mine.length;
